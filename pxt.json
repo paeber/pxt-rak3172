@@ -7,11 +7,11 @@
         "microphone": "*"
     },
     "files": [
-        "main.blocks",
         "main.ts",
         "README.md",
         "main.py",
-        "enums.ts"
+        "enums.ts",
+        "examples/testing.ts"
     ],
     "testFiles": [
         "test.ts"

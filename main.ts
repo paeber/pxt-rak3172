@@ -6,16 +6,22 @@
 //% color="#00796b" icon="\uf1eb"
 namespace RAK_LoRa{
     serial.redirect(SerialPin.P15,SerialPin.P14,BaudRate.BaudRate9600)
-    export let setup_running = 0
     export let lora_joined = 0
-    export let setup_done = 0
-    export let RAK_RC = 0
+    export let RAK_RC = eRAK3172_RC.UNKNOWN
+
+    //% blockId="RAK3172_AT_Check"
+    //% block="RAK3172 Check AT communication"
+    //% advanced=true
+    export function checkCommunication() {
+        // Send a proper command
+        Send_ATCommand("AT")
+    }
 
     //% blockId="RAK3172_AT_Cmd"
     //% block="RAK3172 AT Command: %command"
     //% advanced=true
     export function Send_ATCommand(command: string) {
-        RAK_RC = -1
+        RAK_RC = eRAK3172_RC.UNKNOWN
         serial.writeString(command + "\r\n")
     }
     
@@ -29,7 +35,7 @@ namespace RAK_LoRa{
     //% blockId="RAK3172_NetworkStat"
     //% block="Network Join Status"
     function LoRa_NJS(){
-        Send_ATCommand("AT + NJS=?")
+        Send_ATCommand("AT+NJS=?")
     }
     
 
@@ -40,37 +46,79 @@ namespace RAK_LoRa{
     }
 
     //% blockId="LoRa Send"
-    //% block="LoRa Send | data %data on port %port"
-    export function LoRa_Send(data: string, port: string, ){
-        Send_ATCommand("AT+SEND=" + port + ":" + data)
+    //% block="LoRa Send | data %data on channel %chanNum"
+    export function LoRa_Send(data: string, chanNum: Channels, ){
+        Send_ATCommand("AT+SEND=" + chanNum + ":" + data)
     }
 
     //% blockId="RAK3172_OTAASetup"
-    //% block="LoRa OTAA Setup: AppEUI %AppEUI" | DevEUI %DevEUI | AppKey %AppKey"
+    //% block="LoRa OTAA Setup: AppEUI %AppEUI | DevEUI %DevEUI | AppKey %AppKey"
     export function OTAA_Setup(AppEUI: string, DevEUI: string, AppKey: string) {
-        setup_running = 1
-        while (setup_running) {
-            Send_ATCommand("AT+NWM=1")
-            basic.pause(500)
-            Send_ATCommand("AT+NJM=1")
-            basic.pause(500)
-            Send_ATCommand("AT+CLASS=A")
-            basic.pause(500)
-            Send_ATCommand("AT+BAND=4")
-            basic.pause(500)
-            Send_ATCommand("AT+DEVEUI=" + DevEUI)
-            basic.pause(500)
-            Send_ATCommand("AT+APPEUI=" + AppEUI)
-            basic.pause(500)
-            Send_ATCommand("AT+APPKEY=" + AppKey)
-            basic.pause(500)
-            if (RAK_RC == 0) {
-                setup_running = 0
-            }
+        checkCommunication()
+        basic.pause(100)
+
+        Send_ATCommand("AT+NWM=1")      //Set work mode LoRaWAN
+        basic.pause(500)
+        Send_ATCommand("AT+NJM=1")      //Set activation to OTAA
+        basic.pause(500)
+        setClass("A")    
+        basic.pause(500)
+        setRegion(eBands.EU868)
+        basic.pause(500)
+        Send_ATCommand("AT+DEVEUI=" + DevEUI)
+        basic.pause(500)
+        Send_ATCommand("AT+APPEUI=" + AppEUI)
+        basic.pause(500)
+        Send_ATCommand("AT+APPKEY=" + AppKey)
+        basic.pause(500)
+        if (RAK_RC == eRAK3172_RC.OK) {
+            basic.showIcon(IconNames.Yes)
+            RAK3172_Reset()
         }
-        basic.showIcon(IconNames.Happy)
-        RAK3172_Reset()
-        setup_done = 1
+        else {
+            basic.showIcon(IconNames.No)
+        } 
+    }
+
+    //% blockId="RAK3172_ABPSetup"
+    //% block="LoRa ABP Setup: DevAddr %DevAddr| AppKey %AppKey | NwkKey %NwkKey"
+    export function ABP_Setup(DevAddr: string, AppKey: string, NwkKey: string) {
+        checkCommunication()
+        basic.pause(100)
+
+        Send_ATCommand("AT+NWM=1")      //Set work mode LoRaWAN
+        basic.pause(500)
+        Send_ATCommand("AT+NJM=0")      //Set activation to ABP
+        basic.pause(500)
+        setClass("A")
+        basic.pause(500)
+        setRegion(eBands.EU868)
+        basic.pause(500)
+        Send_ATCommand("AT+DEVADDR=" + DevAddr)
+        basic.pause(500)
+        Send_ATCommand("AT+APPSKEY=" + AppKey)
+        basic.pause(500)
+        Send_ATCommand("AT+NWKSKEY=" + NwkKey)
+        basic.pause(500)
+        if (RAK_RC == eRAK3172_RC.OK) {
+            basic.showIcon(IconNames.Yes)
+            RAK3172_Reset()
+        }
+        else {
+            basic.showIcon(IconNames.No)
+        }
+    }
+
+    //% blockId="RAK3172_SetRegion"
+    //% block="Set Region: %band"
+    export function setRegion(band: eBands) {
+        Send_ATCommand("AT+BAND=" + band)
+    }
+
+    //% blockId="RAK3172_SetClass"
+    //% block="Set Class: %loraClass"
+    export function setClass(loraClass: string) {
+        Send_ATCommand("AT+CLASS=" + loraClass)
     }
 
     //% blockId="RAK3172_SerialRx"
@@ -89,16 +137,12 @@ namespace RAK_LoRa{
             }
         } else {
             if (rc.includes("OK")) {
-                basic.showIcon(IconNames.Yes)
-                RAK_RC = 0
+                RAK_RC = eRAK3172_RC.OK
             } else if (rc.includes("AT_ERROR")) {
-                basic.showIcon(IconNames.No)
-                RAK_RC = 1
+                RAK_RC = eRAK3172_RC.AT_ERROR
             } else {
 
             }
         }
     }
 }
-
-// END
