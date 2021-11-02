@@ -1,104 +1,90 @@
-input.onButtonPressed(Button.A, function () {
-    led.plot(0, 4)
-    Send_ATCommand("AT+VER=?")
-    led.unplot(0, 4)
-})
-function Send_ATCommand (command: string) {
-    RAK_RC = -1
-    serial.writeString("" + command + "\r\n")
-}
-serial.onDataReceived("\r\n", function () {
-    led.plot(2, 4)
-    rc = serial.readUntil("\n\r")
-    if (rc.includes("EVT:")) {
-        if (rc.includes("EVT:JOIN FAILED")) {
-            lora_joined = 0
-        } else if (rc.includes("EVT:JOINED")) {
-            lora_joined = 1
-        } else {
-        	
-        }
-    } else {
-        if (rc.includes("OK")) {
-            basic.showIcon(IconNames.Yes)
-            RAK_RC = 0
-        } else if (rc.includes("AT_ERROR")) {
-            basic.showIcon(IconNames.No)
-            RAK_RC = 1
-        } else {
-        	
-        }
+/**
+ * RAK3172 LoRa Module
+ * GBS St. Gallen, 2021
+ */
+
+//% color="#00796b" icon="\uf1eb"
+namespace RAK_LoRa{
+    serial.redirect(SerialPin.P15,SerialPin.P14,BaudRate.BaudRate9600)
+    export let setup_running = 0
+    export let lora_joined = 0
+    export let setup_done = 0
+    export let RAK_RC = 0
+
+    //% blockId="RAK3172_AT_Cmd"
+    //% block="RAK3172 AT Command: %command"
+    //% advanced=true
+    export function Send_ATCommand(command: string) {
+        RAK_RC = -1
+        serial.writeString("" + command + "\r\n")
     }
-    led.unplot(2, 4)
-})
-input.onButtonPressed(Button.AB, function () {
-    Send_ATCommand("AT+SEND=2:12345678")
-    basic.showIcon(IconNames.SmallDiamond)
-})
-function LoRa_Join () {
-    if (setup_done) {
+
+    //% blockId="RAK3172_NW_Join"
+    //% block="LoRa Network Join"
+    export function LoRa_Join() {
         Send_ATCommand("AT+JOIN=1:0:10:8")
-        basic.pause(5000)
-        if (lora_joined == 1) {
-            basic.showIcon(IconNames.Fabulous)
+    }
+
+    //% blockId="LoRa Send"
+    //% block="LoRa Send data %data"
+    export function LoRa_Send(data: string){
+        Send_ATCommand("AT+SEND=" + data)
+    }
+
+    //% blockId="RAK3172_OTAASetup"
+    //% block="LoRa OTAA Setup: AppEUI %AppEUI" | DevEUI %DevEUI | AppKey %AppKey"
+    export function OTAA_Setup(AppEUI: string, DevEUI: string, AppKey: string) {
+        setup_running = 1
+        while (setup_running) {
+            Send_ATCommand("AT+NWM=1")
+            basic.pause(500)
+            Send_ATCommand("AT+NJM=1")
+            basic.pause(500)
+            Send_ATCommand("AT+CLASS=A")
+            basic.pause(500)
+            Send_ATCommand("AT+BAND=4")
+            basic.pause(500)
+            Send_ATCommand("AT+DEVEUI=" + DevEUI)
+            basic.pause(500)
+            Send_ATCommand("AT+APPEUI=" + AppEUI)
+            basic.pause(500)
+            Send_ATCommand("AT+APPKEY=" + AppKey)
+            basic.pause(500)
+            if (RAK_RC == 0) {
+                setup_running = 0
+            }
+        }
+        basic.showIcon(IconNames.Happy)
+        Send_ATCommand("ATZ")
+        setup_done = 1
+    }
+
+    //% blockId="RAK3172_SerialRx"
+    //% block="Serial Handler"
+    //% weight=100 advanced=true
+    export function RAK3172_SerialHandler(){
+        let rc = "-1"
+        rc = serial.readUntil("\n\r")
+        if (rc.includes("EVT:")) {
+            if (rc.includes("EVT:JOIN FAILED")) {
+                lora_joined = 0
+            } else if (rc.includes("EVT:JOINED")) {
+                lora_joined = 1
+            } else {
+
+            }
         } else {
-            basic.showIcon(IconNames.Sad)
+            if (rc.includes("OK")) {
+                basic.showIcon(IconNames.Yes)
+                RAK_RC = 0
+            } else if (rc.includes("AT_ERROR")) {
+                basic.showIcon(IconNames.No)
+                RAK_RC = 1
+            } else {
+
+            }
         }
     }
 }
-input.onButtonPressed(Button.B, function () {
-    led.plot(1, 4)
-    if (!(setup_done)) {
-        OTAA_Setup("", "", "")
-    } else if (!(lora_joined)) {
-        LoRa_Join()
-    } else {
-        basic.showString("LoRa")
-    }
-    led.unplot(1, 4)
-})
-function OTAA_Setup (AppEUI: string, DevEUI: string, AppKey: string) {
-    setup_running = 1
-    while (setup_running) {
-        Send_ATCommand("AT+NWM=1")
-        basic.pause(500)
-        Send_ATCommand("AT+NJM=1")
-        basic.pause(500)
-        Send_ATCommand("AT+CLASS=A")
-        basic.pause(500)
-        Send_ATCommand("AT+BAND=4")
-        basic.pause(500)
-        Send_ATCommand("AT+DEVEUI=" + DevEUI)
-        basic.pause(500)
-        Send_ATCommand("AT+APPEUI=" + AppEUI)
-        basic.pause(500)
-        Send_ATCommand("AT+APPKEY=" + AppKey)
-        basic.pause(500)
-        if (RAK_RC == 0) {
-            setup_running = 0
-        }
-    }
-    basic.showIcon(IconNames.Happy)
-    Send_ATCommand("ATZ")
-    setup_done = 1
-}
-let setup_running = 0
-let rc = ""
-let RAK_RC = 0
-let lora_joined = 0
-let setup_done = 0
-let rak_buffer: number[] = []
-setup_done = 1
-lora_joined = 0
-RAK_RC = -1
-basic.showIcon(IconNames.Chessboard)
-serial.redirect(
-SerialPin.P15,
-SerialPin.P14,
-BaudRate.BaudRate9600
-)
-basic.clearScreen()
-basic.forever(function () {
-    led.toggle(0, 0)
-    basic.pause(500)
-})
+
+// END
