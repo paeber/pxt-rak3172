@@ -16,19 +16,33 @@ namespace RAK_LoRa{
     //% advanced=true
     export function Send_ATCommand(command: string) {
         RAK_RC = -1
-        serial.writeString("" + command + "\r\n")
+        serial.writeString(command + "\r\n")
+    }
+    
+    //% blockId="RAK3172_Reset"
+    //% block="RAK3172 Reset"
+    //% advanced=true
+    export function RAK3172_Reset() {
+        Send_ATCommand("ATZ")
     }
 
+    //% blockId="RAK3172_NetworkStat"
+    //% block="Network Join Status"
+    function LoRa_NJS(){
+        Send_ATCommand("AT + NJS=?")
+    }
+    
+
     //% blockId="RAK3172_NW_Join"
-    //% block="LoRa Network Join"
-    export function LoRa_Join() {
-        Send_ATCommand("AT+JOIN=1:0:10:8")
+    //% block="LoRa Network Join | Join: %join | On Power-up: %auto_join"
+    export function LoRa_Join(join: eBool, auto_join: eBool) {
+        Send_ATCommand("AT+JOIN=" + join + ":" + auto_join + ":10:8")
     }
 
     //% blockId="LoRa Send"
-    //% block="LoRa Send data %data"
-    export function LoRa_Send(data: string){
-        Send_ATCommand("AT+SEND=" + data)
+    //% block="LoRa Send | data %data on port %port"
+    export function LoRa_Send(data: string, port: string, ){
+        Send_ATCommand("AT+SEND=" + port + ":" + data)
     }
 
     //% blockId="RAK3172_OTAASetup"
@@ -55,7 +69,7 @@ namespace RAK_LoRa{
             }
         }
         basic.showIcon(IconNames.Happy)
-        Send_ATCommand("ATZ")
+        RAK3172_Reset()
         setup_done = 1
     }
 
