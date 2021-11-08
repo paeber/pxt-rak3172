@@ -1,5 +1,5 @@
 {
-    "name": "RAK3172 Eval",
+    "name": "RAK3172",
     "description": "",
     "dependencies": {
         "core": "*",
@@ -7,10 +7,10 @@
         "microphone": "*"
     },
     "files": [
-        "main.blocks",
         "main.ts",
         "README.md",
-        "main.py"
+        "main.py",
+        "enums.ts"
     ],
     "testFiles": [
         "test.ts"
@@ -22,5 +22,5 @@
     "supportedTargets": [
         "microbit"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "tsprj"
 }
