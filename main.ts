@@ -6,7 +6,9 @@
 //% color="#00796b" icon="\uf1eb"
 namespace RAK_LoRa{
     serial.redirect(SerialPin.P15,SerialPin.P14,BaudRate.BaudRate9600)
-    export let lora_joined = 0
+    let response = ""
+    let FLAG_WaitForAnswer = 0
+    let lora_joined = 0
     export let RAK_RC = eRAK3172_RC.UNKNOWN
 
     //% blockId="RAK3172_AT_Check"
@@ -24,6 +26,19 @@ namespace RAK_LoRa{
         RAK_RC = eRAK3172_RC.UNKNOWN
         serial.writeString(command + "\r\n")
     }
+
+    //% blockId="RAK3172_AT_Cmd_TxRx"
+    //% block="RAK3172 AT TxRx Command: %command"
+    //% advanced=true
+    export function TxRx_ATCommand(command: string) {
+        RAK_RC = eRAK3172_RC.UNKNOWN
+        FLAG_WaitForAnswer = 1
+        serial.writeString(command + "\r\n")
+        while(FLAG_WaitForAnswer){
+            basic.pause(75)
+        }
+        return response
+    }
     
     //% blockId="RAK3172_Reset"
     //% block="RAK3172 Reset"
@@ -34,8 +49,15 @@ namespace RAK_LoRa{
 
     //% blockId="RAK3172_NetworkStat"
     //% block="Network Join Status"
-    function LoRa_NJS(){
+    //% advanced=true
+    export function LoRa_NJS(){
         Send_ATCommand("AT+NJS=?")
+    }
+
+    //% blockId="LoRa_GetJoinStatus"
+    //% block="Is LoRa connected?"
+    export function LoRa_IsNetJoined() {
+        return lora_joined;
     }
     
 
@@ -127,6 +149,10 @@ namespace RAK_LoRa{
     export function RAK3172_SerialHandler(){
         let rc = "-1"
         rc = serial.readUntil("\n\r")
+        if(FLAG_WaitForAnswer){
+            response = rc
+            FLAG_WaitForAnswer = 0
+        }
         if (rc.includes("EVT:")) {
             if (rc.includes("EVT:JOIN FAILED")) {
                 lora_joined = 0
@@ -140,6 +166,9 @@ namespace RAK_LoRa{
                 RAK_RC = eRAK3172_RC.OK
             } else if (rc.includes("AT_ERROR")) {
                 RAK_RC = eRAK3172_RC.AT_ERROR
+            } else if (rc.includes("AT_NO_NETWORK_JOINED")) {
+                RAK_RC = eRAK3172_RC.AT_NO_NETWORK_JOINED
+                lora_joined = 0
             } else {
 
             }

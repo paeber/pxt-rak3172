@@ -10,8 +10,7 @@
         "main.ts",
         "README.md",
         "main.py",
-        "enums.ts",
-        "examples/testing.ts"
+        "enums.ts"
     ],
     "testFiles": [
         "test.ts"
