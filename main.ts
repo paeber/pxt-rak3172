@@ -1,11 +1,11 @@
 /**
  * RAK3172 LoRa Module
- * GBS St. Gallen, 2021
+ * GBS St. Gallen, 2022
  */
 
 //% color="#00796b" icon="\uf1eb"
-namespace RAK_LoRa{
-    serial.redirect(SerialPin.P15,SerialPin.P14,BaudRate.BaudRate9600)
+namespace LoRa{
+    serial.redirect(SerialPin.P8,SerialPin.P13,BaudRate.BaudRate9600)
     let response = ""
     let FLAG_WaitForAnswer = 0
     let lora_joined = 0
