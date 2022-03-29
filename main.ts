@@ -6,6 +6,7 @@
 //% color="#00796b" icon="\uf1eb"
 namespace LoRa{
     serial.redirect(SerialPin.P8,SerialPin.P13,BaudRate.BaudRate9600)
+    serial.onDataReceived("\n\r", RAK3172_SerialHandler)
     let response = ""
     let FLAG_WaitForAnswer = 0
     let lora_joined = 0
@@ -51,7 +52,7 @@ namespace LoRa{
     //% block="Network Join Status"
     //% advanced=true
     export function LoRa_NJS(){
-        Send_ATCommand("AT+NJS=?")
+        lora_joined = parseInt(TxRx_ATCommand("AT+NJS=?"))
     }
 
     //% blockId="LoRa_GetJoinStatus"
