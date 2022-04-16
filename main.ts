@@ -73,6 +73,17 @@ namespace LoRa{
         Send_ATCommand("AT+SEND=" + chanNum + ":" + data)
     }
 
+    //% blockId="LoRa Send"
+    //% block="Decoded Send | channel %chanNum | id %id | field1 %field1 | field2 %field2  | field3 %field3"
+    export function LoRa_DecodedSend(chanNum: Channels, id: number, field1: number, field2: number, field3: number,  ) {
+        let data = 0x00000000;
+        data = data | (    id << 32)
+        data = data | (field1 << 16)
+        data = data | (field2 <<  8)
+        data = data | (field3 <<  0)
+        Send_ATCommand("AT+SEND=" + chanNum + ":" + data.toString())
+    }
+
     //% blockId="RAK3172_OTAASetup"
     //% block="LoRa OTAA Setup: AppEUI %AppEUI | DevEUI %DevEUI | AppKey %AppKey"
     export function OTAA_Setup(AppEUI: string, DevEUI: string, AppKey: string) {
