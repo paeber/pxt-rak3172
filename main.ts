@@ -6,10 +6,21 @@
 //% color="#00796b" icon="\uf1eb"
 namespace LoRa{
     serial.redirect(SerialPin.P8,SerialPin.P13,BaudRate.BaudRate9600)
+    let device_status = eRAK3172_States.UNKNOWN
     let response = ""
     let FLAG_WaitForAnswer = 0
     let lora_joined = 0
     export let RAK_RC = eRAK3172_RC.UNKNOWN
+
+    //% blockId="RAK3172_Init"
+    //% block="RAK3172 Init"
+    //% advanced=false
+    export function Lora_Setup() {
+        device_status = eRAK3172_States.INIT
+        Send_ATCommand("AT")
+        basic.pause(50)
+        LoRa_NJS()
+    }
 
     //% blockId="RAK3172_AT_Check"
     //% block="RAK3172 Check AT communication"
@@ -47,11 +58,12 @@ namespace LoRa{
         Send_ATCommand("ATZ")
     }
 
-    //% blockId="RAK3172_NetworkStat"
+    //% blockId="RAK3172_NetworkStatus"
     //% block="Network Join Status"
     //% advanced=true
     export function LoRa_NJS(){
-        Send_ATCommand("AT+NJS=?")
+        let response = TxRx_ATCommand("AT+NJS=?")
+        lora_joined = parseInt(response)
     }
 
     //% blockId="LoRa_GetJoinStatus"
@@ -87,7 +99,7 @@ namespace LoRa{
     //% blockId="RAK3172_OTAASetup"
     //% block="LoRa OTAA Setup: AppEUI %AppEUI | DevEUI %DevEUI | AppKey %AppKey"
     export function OTAA_Setup(AppEUI: string, DevEUI: string, AppKey: string) {
-        checkCommunication()
+        device_status = eRAK3172_States.BUSY
         basic.pause(100)
 
         Send_ATCommand("AT+NWM=1")      //Set work mode LoRaWAN
@@ -105,18 +117,16 @@ namespace LoRa{
         Send_ATCommand("AT+APPKEY=" + AppKey)
         basic.pause(500)
         if (RAK_RC == eRAK3172_RC.OK) {
-            basic.showIcon(IconNames.Yes)
             RAK3172_Reset()
+            basic.pause(100)
+            device_status = eRAK3172_States.READY
         }
-        else {
-            basic.showIcon(IconNames.No)
-        } 
     }
 
     //% blockId="RAK3172_ABPSetup"
     //% block="LoRa ABP Setup: DevAddr %DevAddr| AppKey %AppKey | NwkKey %NwkKey"
     export function ABP_Setup(DevAddr: string, AppKey: string, NwkKey: string) {
-        checkCommunication()
+        device_status = eRAK3172_States.BUSY
         basic.pause(100)
 
         Send_ATCommand("AT+NWM=1")      //Set work mode LoRaWAN
@@ -134,11 +144,9 @@ namespace LoRa{
         Send_ATCommand("AT+NWKSKEY=" + NwkKey)
         basic.pause(500)
         if (RAK_RC == eRAK3172_RC.OK) {
-            basic.showIcon(IconNames.Yes)
             RAK3172_Reset()
-        }
-        else {
-            basic.showIcon(IconNames.No)
+            basic.pause(100)
+            device_status = eRAK3172_States.READY
         }
     }
 

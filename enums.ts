@@ -13,6 +13,14 @@ enum eRAK3172_RC {
     UNKNOWN                 //Waiting for new RC
 }
 
+enum eRAK3172_States {
+    INIT,
+    BUSY,
+    READY,
+    CONNECTED,
+    UNKNOWN               
+}
+
 enum eBool {
     disable,   //disable represents 0
     enable     //enable represents 1
