@@ -6,21 +6,13 @@
 //% color="#00796b" icon="\uf1eb"
 namespace LoRa{
     serial.redirect(SerialPin.P8,SerialPin.P13,BaudRate.BaudRate9600)
-    let device_status = eRAK3172_States.UNKNOWN
+    serial.setRxBufferSize(32)
+    export let message = ""
     let response = ""
     let FLAG_WaitForAnswer = 0
     let lora_joined = 0
     export let RAK_RC = eRAK3172_RC.UNKNOWN
 
-    //% blockId="RAK3172_Init"
-    //% block="RAK3172 Init"
-    //% advanced=false
-    export function Lora_Setup() {
-        device_status = eRAK3172_States.INIT
-        Send_ATCommand("AT")
-        basic.pause(50)
-        LoRa_NJS()
-    }
 
     //% blockId="RAK3172_AT_Check"
     //% block="RAK3172 Check AT communication"
@@ -46,7 +38,7 @@ namespace LoRa{
         FLAG_WaitForAnswer = 1
         serial.writeString(command + "\r\n")
         while(FLAG_WaitForAnswer){
-            basic.pause(75)
+            basic.pause(50)
         }
         return response
     }
@@ -60,10 +52,8 @@ namespace LoRa{
 
     //% blockId="RAK3172_NetworkStatus"
     //% block="Network Join Status"
-    //% advanced=true
     export function LoRa_NJS(){
-        let response = TxRx_ATCommand("AT+NJS=?")
-        lora_joined = parseInt(response)
+        lora_joined = parseInt(TxRx_ATCommand("AT+NJS=?"))
     }
 
     //% blockId="LoRa_GetJoinStatus"
@@ -99,9 +89,6 @@ namespace LoRa{
     //% blockId="RAK3172_OTAASetup"
     //% block="LoRa OTAA Setup: AppEUI %AppEUI | DevEUI %DevEUI | AppKey %AppKey"
     export function OTAA_Setup(AppEUI: string, DevEUI: string, AppKey: string) {
-        device_status = eRAK3172_States.BUSY
-        basic.pause(100)
-
         Send_ATCommand("AT+NWM=1")      //Set work mode LoRaWAN
         basic.pause(500)
         Send_ATCommand("AT+NJM=1")      //Set activation to OTAA
@@ -119,14 +106,12 @@ namespace LoRa{
         if (RAK_RC == eRAK3172_RC.OK) {
             RAK3172_Reset()
             basic.pause(100)
-            device_status = eRAK3172_States.READY
         }
     }
 
     //% blockId="RAK3172_ABPSetup"
     //% block="LoRa ABP Setup: DevAddr %DevAddr| AppKey %AppKey | NwkKey %NwkKey"
     export function ABP_Setup(DevAddr: string, AppKey: string, NwkKey: string) {
-        device_status = eRAK3172_States.BUSY
         basic.pause(100)
 
         Send_ATCommand("AT+NWM=1")      //Set work mode LoRaWAN
@@ -146,7 +131,6 @@ namespace LoRa{
         if (RAK_RC == eRAK3172_RC.OK) {
             RAK3172_Reset()
             basic.pause(100)
-            device_status = eRAK3172_States.READY
         }
     }
 
@@ -162,17 +146,30 @@ namespace LoRa{
         Send_ATCommand("AT+CLASS=" + loraClass)
     }
 
+    //% blockId="RAK_getMessage"
+    //% block="Get Message"
+    //% weight=100 advanced=true
+    export function readRAK() {
+        let res = serial.readUntil("\r\n")
+        if (res.length > 0) {
+            message = res.split("\r")[0]
+        }
+        return res.length
+    }
+    
     //% blockId="RAK3172_SerialRx"
     //% block="Serial Handler"
-    //% weight=100 advanced=true
+    //% weight=90 advanced=true
     export function RAK3172_SerialHandler(){
         let rc = "-1"
-        rc = serial.readUntil("\n\r")
+        rc = serial.readUntil("\r\n")
         if(FLAG_WaitForAnswer){
+            led.toggle(4, 4)
             response = rc
             FLAG_WaitForAnswer = 0
         }
         if (rc.includes("EVT:")) {
+            led.toggle(3, 4)
             if (rc.includes("EVT:JOIN FAILED")) {
                 lora_joined = 0
             } else if (rc.includes("EVT:JOINED")) {
@@ -181,6 +178,7 @@ namespace LoRa{
 
             }
         } else {
+            led.toggle(2, 4)
             if (rc.includes("OK")) {
                 RAK_RC = eRAK3172_RC.OK
             } else if (rc.includes("AT_ERROR")) {
@@ -189,7 +187,7 @@ namespace LoRa{
                 RAK_RC = eRAK3172_RC.AT_NO_NETWORK_JOINED
                 lora_joined = 0
             } else {
-
+                message = rc
             }
         }
     }
